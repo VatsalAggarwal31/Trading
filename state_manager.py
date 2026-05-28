@@ -12,7 +12,7 @@ def get_ist_date():
 def _default_state():
     return {
         'positions': {},  # Mapped ticker -> position details
-        'tickers': ["TATASTEEL.NS", "RELIANCE.NS", "INFY.NS", "ITC.NS", "TCS.NS"],
+        'tickers': ["TATASTEEL.NS", "ITC.NS", "WIPRO.NS", "ONGC.NS", "SBIN.NS"],
         'daily_pnl': 0.0,
         'daily_date': str(get_ist_date()),
         'trade_count_today': 0,
@@ -53,7 +53,11 @@ def load_state():
         needs_save = True
 
     if 'tickers' not in state:
-        state['tickers'] = ["TATASTEEL.NS", "RELIANCE.NS", "INFY.NS", "ITC.NS", "TCS.NS"]
+        state['tickers'] = ["TATASTEEL.NS", "ITC.NS", "WIPRO.NS", "ONGC.NS", "SBIN.NS"]
+        needs_save = True
+    elif state.get('tickers') == ["TATASTEEL.NS", "RELIANCE.NS", "INFY.NS", "ITC.NS", "TCS.NS"]:
+        # Auto-upgrade to under-₹1000 scan pool
+        state['tickers'] = ["TATASTEEL.NS", "ITC.NS", "WIPRO.NS", "ONGC.NS", "SBIN.NS"]
         needs_save = True
 
     # New day — reset daily counters but keep position intact

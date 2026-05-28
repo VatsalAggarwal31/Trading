@@ -38,7 +38,12 @@ TICKER_MAP = {
     "RELIANCE.NS": "2885",
     "INFY.NS": "1594",
     "ITC.NS": "1660",
-    "TCS.NS": "11536"
+    "TCS.NS": "11536",
+    "SBIN.NS": "3045",
+    "WIPRO.NS": "3787",
+    "TATAMOTORS.NS": "3456",
+    "ONGC.NS": "2475",
+    "IOC.NS": "1624"
 }
 
 
