@@ -443,6 +443,65 @@ with col_status:
 
 st.markdown("<br/>", unsafe_allow_html=True)
 
+# ── Portfolio Edge & Gain Forecaster ──────────────────────────
+st.subheader("🔮 Unified Portfolio Edge & Gain Forecaster")
+with st.expander("🔮 Run Unified Portfolio Edge Scan to Predict Today's Gains", expanded=False):
+    if st.button("🚀 Execute Neural Scanner across entire Ticker Pool", use_container_width=True):
+        st.write("Fetching latest intraday coordinates and executing neural scans...")
+        
+        forecast_results = []
+        progress_bar = st.progress(0)
+        
+        for idx, tick in enumerate(tickers):
+            try:
+                # Fetch data
+                df_scan = fetch_and_prepare_data(ticker=tick)
+                current_p = float(df_scan['Close'].iloc[-1])
+                
+                # Get prediction
+                from ai_model import get_live_prediction
+                pred_p = get_live_prediction(df_scan, tick)
+                
+                expected_gain_pct = ((pred_p - current_p) / current_p) * 100
+                
+                status_str = "🟢 Strong Edge (>0.5% Upside)" if expected_gain_pct >= 0.5 else "⚪ Neutral/Insufficent Edge"
+                if expected_gain_pct < 0:
+                    status_str = "🔴 Downside Expected"
+                    
+                forecast_results.append({
+                    "Ticker Symbol": tick,
+                    "Current Spot": f"₹{current_p:.2f}",
+                    "AI Forecast (1-Hour out)": f"₹{pred_p:.2f}",
+                    "Expected Gain/Loss (%)": f"{expected_gain_pct:+.2f}%",
+                    "Recommendation": status_str,
+                    "sort_val": expected_gain_pct
+                })
+            except Exception as e:
+                forecast_results.append({
+                    "Ticker Symbol": tick,
+                    "Current Spot": "Error",
+                    "AI Forecast (1-Hour out)": "N/A",
+                    "Expected Gain/Loss (%)": "N/A",
+                    "Recommendation": f"Scan Failed: {str(e)}",
+                    "sort_val": -999
+                })
+            progress_bar.progress((idx + 1) / len(tickers))
+            
+        # Display as a beautiful table sorted by expected gain
+        fore_df = pd.DataFrame(forecast_results).sort_values(by="sort_val", ascending=False).drop(columns=["sort_val"])
+        st.dataframe(fore_df, use_container_width=True, hide_index=True)
+        
+        # Display a summary of the top-performing pick
+        valid_gains = [r for r in forecast_results if r['sort_val'] != -999]
+        if valid_gains:
+            top_pick = max(valid_gains, key=lambda x: x['sort_val'])
+            if top_pick['sort_val'] >= 0.5:
+                st.success(f"🎯 **Top Gain Predictor for Today**: **{top_pick['Ticker Symbol']}** with an expected edge of **{top_pick['sort_val']:+.2f}%**!")
+            else:
+                st.info("💡 **Neural Scanner Summary**: No individual assets currently show >0.5% expected edge. Standing by in cash is recommended.")
+
+st.markdown("<br/>", unsafe_allow_html=True)
+
 # ── Portfolio Exposure Grid ───────────────────────────────────
 st.subheader("💼 Cybernetic Portfolio Active Exposure Grid")
 
