@@ -12,7 +12,7 @@ _validation_cache = {}
 def initialize_broker():
     """Connects to Dhan API using static credentials from .env and validates them."""
     global broker_instance
-    load_dotenv()
+    load_dotenv(override=True)
 
     client_id = os.getenv("DHAN_CLIENT_ID")
     access_token = os.getenv("DHAN_ACCESS_TOKEN")

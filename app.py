@@ -238,7 +238,7 @@ with st.sidebar:
     # 3. Secure Token Refresher
     st.markdown("<div class='sidebar-header'>🔑 API Security Key</div>", unsafe_allow_html=True)
     with st.expander("🔑 Secure Token Refresher"):
-        load_dotenv()
+        load_dotenv(override=True)
         curr_token = os.getenv("DHAN_ACCESS_TOKEN", "")
         masked = f"{curr_token[:6]}...{curr_token[-6:]}" if len(curr_token) > 12 else "Not Configured"
         st.caption(f"Active Token: `{masked}`")
