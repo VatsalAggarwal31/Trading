@@ -1,0 +1,27 @@
+# Local Environment Credentials
+.env
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Active Bot Telemetry & Database
+bot.log
+trade_history.csv
+bot_state.json
+pool.json
+
+# Pre-trained Brain Models and Scalers
+*.h5
+*.gz
+
+# IDE Metadata
+.idea/
+.vscode/
