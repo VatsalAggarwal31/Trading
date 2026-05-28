@@ -10,16 +10,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_model_paths(ticker):
-    if ticker.upper() == "TATASTEEL.NS":
-        # Backwards compatibility check for existing model files
-        legacy_model = os.path.join(BASE_DIR, 'tata_steel_v2.h5')
-        legacy_scaler = os.path.join(BASE_DIR, 'st_scaler_v2.gz')
-        if os.path.exists(legacy_model) and os.path.exists(legacy_scaler):
-            return legacy_model, legacy_scaler
-
     safe_ticker = ticker.lower().replace('.', '_').replace('-', '_')
-    model_path = os.path.join(BASE_DIR, f'{safe_ticker}_v2.h5')
-    scaler_path = os.path.join(BASE_DIR, f'{safe_ticker}_scaler_v2.gz')
+    model_path = os.path.join(BASE_DIR, f'{safe_ticker}_v3.h5')
+    scaler_path = os.path.join(BASE_DIR, f'{safe_ticker}_scaler_v3.gz')
     return model_path, scaler_path
 
 # Define our constants

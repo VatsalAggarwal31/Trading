@@ -12,7 +12,7 @@ def fetch_and_prepare_data(ticker="TATASTEEL.NS", retries=3, delay=10):
     last_error = None
     for attempt in range(1, retries + 1):
         try:
-            df = yf.download(ticker, period="5d", interval="1m", progress=False)
+            df = yf.download(ticker, period="60d", interval="15m", progress=False)
 
             if df.empty:
                 raise ValueError(f"Yahoo Finance returned no data for {ticker}.")
