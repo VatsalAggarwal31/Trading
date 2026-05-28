@@ -5,8 +5,12 @@ from dotenv import load_dotenv
 broker_instance = None
 
 
+import time
+
+_validation_cache = {}
+
 def initialize_broker():
-    """Connects to Dhan API using static credentials from .env"""
+    """Connects to Dhan API using static credentials from .env and validates them."""
     global broker_instance
     load_dotenv()
 
@@ -17,20 +21,51 @@ def initialize_broker():
         print("System Error: Dhan credentials missing in .env file.")
         return False
 
+    # Check cache to avoid hitting Dhan API too frequently (e.g. on every Streamlit rerun)
+    cache_key = (client_id, access_token)
+    now = time.time()
+    if cache_key in _validation_cache:
+        cached_result, cached_time = _validation_cache[cache_key]
+        if now - cached_time < 10:  # Cache for 10 seconds
+            if cached_result and broker_instance is not None:
+                return True
+            elif not cached_result:
+                return False
+
     try:
-        # Dynamically adapt to different dhanhq library signatures
-        import inspect
-        sig = inspect.signature(dhanhq.__init__)
-        if 'client_id' not in sig.parameters:
-            broker_instance = dhanhq(access_token)
+        from dhanhq import dhanhq, DhanContext
+        try:
+            ctx = DhanContext(client_id, access_token)
+            broker_instance = dhanhq(ctx)
+        except Exception:
+            # Fallback for other library versions
+            import inspect
+            sig = inspect.signature(dhanhq.__init__)
+            if 'client_id' not in sig.parameters:
+                broker_instance = dhanhq(access_token)
+            else:
+                broker_instance = dhanhq(client_id, access_token)
+
+        # Validate the token actually works by calling a lightweight method
+        res = broker_instance.get_fund_limits()
+        if isinstance(res, dict) and res.get('status') == 'success':
+            print("System: Broker Actuator (Dhan) Connected and validated successfully.")
+            _validation_cache[cache_key] = (True, now)
+            return True
         else:
-            broker_instance = dhanhq(client_id, access_token)
+            remarks = res.get('remarks', {}) if isinstance(res, dict) else {}
+            err_msg = remarks.get('error_message', 'Invalid response from Dhan API')
+            print(f"System Error: Broker validation failed. {err_msg}")
+            broker_instance = None
+            _validation_cache[cache_key] = (False, now)
+            return False
             
-        print("System: Broker Actuator (Dhan) Connected successfully.")
-        return True
     except Exception as e:
-        print(f"System Error: Broker connection failed. {e}")
+        print(f"System Error: Broker connection/validation failed. {e}")
+        broker_instance = None
+        _validation_cache[cache_key] = (False, now)
         return False
+
 
 
 TICKER_MAP = {

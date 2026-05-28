@@ -16,7 +16,7 @@ def _default_state():
         'daily_pnl': 0.0,
         'daily_date': str(get_ist_date()),
         'trade_count_today': 0,
-        'dry_run': True
+        'dry_run': False
     }
 
 

@@ -318,9 +318,23 @@ col_p1.metric("Account Equity", f"₹{total_equity:.2f}", f"₹{pool['total_pnl'
 col_p2.metric("Available Free Cash", f"₹{free_cash:.2f}")
 col_p3.metric("Invested Capital", f"₹{invested_capital:.2f}")
 col_p4.metric("Win Rate", f"{pool['win_rate']}%", f"{pool['winning_trades']} / {pool['total_trades']} Trades")
-col_p5.metric("Engine Mode", "LIVE TRADING" if mode_toggle else "SIMULATION", 
-              delta="Live Actuators Active" if mode_toggle else "Dry Run Protection", 
-              delta_color="normal" if mode_toggle else "off")
+from broker_api import initialize_broker
+# Dynamic connection check for live recovery UI
+if mode_toggle:
+    if initialize_broker():
+        mode_label = "LIVE TRADING"
+        mode_delta = "Dhan Connected & Active"
+        mode_color = "normal"
+    else:
+        mode_label = "DEMO FALLBACK"
+        mode_delta = "Token Expired - Simulated Mode"
+        mode_color = "inverse"
+else:
+    mode_label = "SIMULATION"
+    mode_delta = "Dry Run Protection"
+    mode_color = "off"
+
+col_p5.metric("Engine Mode", mode_label, delta=mode_delta, delta_color=mode_color)
 
 st.markdown("<br/>", unsafe_allow_html=True)
 

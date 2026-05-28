@@ -96,7 +96,7 @@ def log_trade_csv(action, ticker, price, shares, pnl=0.0):
 
 # ── Core sell logic ──────────────────────────────────────────
 
-def execute_sell(state, ticker, current_price, reason=""):
+def execute_sell(state, ticker, current_price, reason="", effective_dry_run=None):
     pos = state.get('positions', {}).get(ticker, {})
     if not pos or not pos.get('holding_position', False):
         return state
@@ -105,10 +105,16 @@ def execute_sell(state, ticker, current_price, reason=""):
     entry  = pos['entry_price']
     pnl    = round((current_price - entry) * shares, 2)
     sign   = "+" if pnl >= 0 else ""
-    dry_run = state.get('dry_run', True)
+    
+    if effective_dry_run is None:
+        dry_run_state = state.get('dry_run', True)
+        effective_dry_run = dry_run_state
+        if not dry_run_state:
+            if not initialize_broker():
+                effective_dry_run = True
 
     success = True
-    if not dry_run:
+    if not effective_dry_run:
         success = execute_market_order(ticker, shares, "SELL")
 
     if success:
@@ -166,12 +172,14 @@ def run():
                     log.info("Market has opened! Initiating scanners and actuators.")
                     run.market_was_closed = False
 
-            # On-the-fly broker connection for dynamic live trading toggles
-            if not dry_run and not initialize_broker():
-                log.error("Dhan connection failed. Forcing SAFE DRY RUN mode.")
-                state['dry_run'] = True
-                save_state(state)
-                dry_run = True
+            # On-the-fly broker connection for dynamic live trading toggles with self-healing auto-recovery
+            effective_dry_run = dry_run
+            if not dry_run:
+                if initialize_broker():
+                    log.info("Dhan API credentials validated. LIVE execution active.")
+                else:
+                    log.warning("Dhan connection failed or token expired. Safely falling back to temporary DEMO mode for this cycle.")
+                    effective_dry_run = True
 
             # ── 2. Daily loss circuit breaker ──────────────────
             if daily_limit_hit(state, capital):
@@ -186,7 +194,7 @@ def run():
                             price = df['Close'].iloc[-1]
                         except Exception:
                             price = pos['entry_price']
-                        state = execute_sell(state, ticker, price, reason="DAILY_LIMIT")
+                        state = execute_sell(state, ticker, price, reason="DAILY_LIMIT", effective_dry_run=effective_dry_run)
                 time.sleep(300)
                 continue
 
@@ -202,7 +210,7 @@ def run():
                             current_price = df['Close'].iloc[-1]
                         except Exception:
                             current_price = pos['entry_price']
-                        state = execute_sell(state, ticker, current_price, reason="SQUARE_OFF")
+                        state = execute_sell(state, ticker, current_price, reason="SQUARE_OFF", effective_dry_run=effective_dry_run)
                 if has_active:
                     time.sleep(60)
                     continue
@@ -235,10 +243,10 @@ def run():
 
                     if current_price <= sl:
                         log.warning(f"STOP-LOSS triggered for {ticker}.")
-                        state = execute_sell(state, ticker, current_price, reason="STOP_LOSS")
+                        state = execute_sell(state, ticker, current_price, reason="STOP_LOSS", effective_dry_run=effective_dry_run)
                     elif current_price >= tp:
                         log.info(f"TAKE-PROFIT target hit for {ticker}.")
-                        state = execute_sell(state, ticker, current_price, reason="TAKE_PROFIT")
+                        state = execute_sell(state, ticker, current_price, reason="TAKE_PROFIT", effective_dry_run=effective_dry_run)
 
             # ── 5. Entry signal scan (every 15 min) ───────────
             now = time.time()
@@ -294,10 +302,10 @@ def run():
                             )
 
                             success = True
-                            if not dry_run:
+                            if not effective_dry_run:
                                 success = execute_market_order(ticker, shares, "BUY")
                             else:
-                                log.info(f"DRY RUN - order for {ticker} simulated.")
+                                log.info(f"DEMO MODE - order for {ticker} simulated.")
 
                             if success:
                                 if 'positions' not in state:
